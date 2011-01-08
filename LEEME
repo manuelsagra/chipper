@@ -1,0 +1,20 @@
+Chipper
+-------
+
+Hay muchos emuladores de CHIP8 y SCHIP, pero creo que este es el primero que está programado en HTML5 y JavaScript.
+
+Funcionan correctamente todos los juegos que he probado, y el rendimiento es bastante bueno usando los últimos navegadores que soportan HTML5 en un ordenador reciente.
+
+El objetivo del proyecto es mostrar los principios básicos de la emulación, así que te animo a que juegues todo lo que quieras con el código :D
+
+Si tienes alguna sugerencia, puedes contactar conmigo por estas vías:
+
+E-mail:		manuelsagra@gmail.com
+Twitter:	http://twitter.com/manuelsagra
+
+La última versión del código fuente la puedes encontrar aquí:
+
+https://github.com/manuelsagra/chipper
+
+Manuel Sagra
+http://manuelsagra.com/	

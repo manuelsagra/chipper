@@ -1,0 +1,140 @@
+html, body, div, span, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, cite,
+a, img, dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend, input, textarea,
+table, caption, tbody, tfoot, thead, tr, th, td {
+	margin:0;
+	padding:0;
+	border:0;
+	outline:0;
+	font-style:inherit;
+	font-size:100%;
+	font-family:inherit;
+	vertical-align:baseline;
+}
+header, footer, nav, section, article, aside {
+	display:block;
+}
+body {
+	margin:0;
+	padding:20px;
+	background:#1a3664 url(img/plastic.png);
+	color:#000;
+	text-align:center;
+	font-family:Verdana, sans-serif;
+	font-size:0.7em;
+}
+a {
+	color:#eee;
+}
+a:hover {
+	color:#ccc;
+}
+.wrapper {
+	text-align:left;
+	width:534px;
+	margin:0 auto;
+}
+canvas {
+	display:block;
+	margin:0 0 20px 0;
+	padding:10px;
+	border:1px solid #000;
+	background:#a8a48b;
+	border-radius:5px;
+	-webkit-border-radius:5px;
+	-moz-border-radius:5px;
+
+}
+#keyboard {
+	float:right;
+	padding:10px;
+	background:#fff;
+	border:1px solid #000;
+	border-radius:5px;
+	-webkit-border-radius:5px;
+	-moz-border-radius:5px;
+}
+#keyboard thead {
+	display:none;
+}
+#keyboard td {
+	padding:3px;
+	margin:0;
+	border-collapse:collapse;
+}
+#keyboard input {
+	font-family:Verdana,sans-serif;
+	display:block;
+	font-size:1.6em;
+	width:40px;
+	line-height:40px;
+	height:40px;
+	text-align:center;
+	background:#fff;
+	color:#1a3664;
+	border:1px solid #ccc;
+	border-radius:8px;
+	-webkit-border-radius:8px;
+	-moz-border-radius:8px;
+	cursor:pointer;
+	-moz-box-shadow:3px 3px 3px #eee;
+	-webkit-box-shadow:3px 3px 3px #eee;
+	box-shadow:3px 3px 3px #eee;
+}
+#options {
+	width:280px;
+	float:left;
+}
+#file {
+	margin:0 0 15px 0;
+}
+select {
+	width:230px;
+	height:24px;
+	line-height:24px;
+}
+input.run {
+	line-height:22px;
+	border:1px solid #000;
+	border-radius:5px;
+	-webkit-border-radius:5px;
+	-moz-border-radius:5px;
+	font-size:1.1em;
+	padding:1px 4px;
+	cursor:pointer;
+}
+.fpsdisplay {
+	width:56px;
+	height:38px;
+	background:#000;
+	padding:3px;
+	border:1px solid #333;
+	border-radius:5px;
+	-webkit-border-radius:5px;
+	-moz-border-radius:5px;
+	margin:0 0 15px 0;
+}
+.fps {
+	float:left;
+	width:28px;
+	height:38px;
+	background:url(img/display.png) 0 0 no-repeat;	
+}	
+h1 {
+	width:272px;
+	height:39px;
+	text-indent:-9999px;
+	background:url(img/logo.png) top left no-repeat;
+	margin:0 0 20px 0;
+}
+h2, .legend {
+	font-size:0.8em;
+	font-weight:normal;
+	text-transform:uppercase;
+	color:#eee;
+	margin:0 0 5px 0;
+}
+.break {
+	clear:both;
+}
