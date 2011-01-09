@@ -5,9 +5,9 @@ There are a lot of CHIP8 and SCHIP emulators, but I believe this is the first on
 
 Every game I tested worked ok, and I think the performance is nice, at least using the latest browsers suporting HTML5 on a recent computer.
 
-The main purpose of the proyect is showing the basics of emulation, so playing with the code is really encouraged :D
+The main purpose of the project is showing the basics of emulation, so playing with the code is really encouraged :D
 
-The only requirement is to upload the files into a web server that supports PHP, because the game loading is done with a page (loadrom.php) that converts the binary files into JavaScript arrays.
+The only requirement is to upload the files into a web server that supports PHP, because game loading is done with a page (loadrom.php) that converts the binary files into JavaScript arrays.
 
 If you have any suggestion, you can contact me:
 
