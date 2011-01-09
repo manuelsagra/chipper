@@ -17,7 +17,7 @@ header, footer, nav, section, article, aside {
 }
 body {
 	margin:0;
-	padding:20px;
+	padding:20px 0;
 	background:#1a3664 url(img/plastic.png);
 	color:#000;
 	text-align:center;
