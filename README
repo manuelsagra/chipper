@@ -7,6 +7,8 @@ Every game I tested worked ok, and I think the performance is nice, at least usi
 
 The main purpose of the proyect is showing the basics of emulation, so playing with the code is really encouraged :D
 
+The only requirement is to upload the files into a web server that supports PHP, because the game loading is done with a page (loadrom.php) that converts the binary files into JavaScript arrays.
+
 If you have any suggestion, you can contact me:
 
 E-mail:		manuelsagra@gmail.com

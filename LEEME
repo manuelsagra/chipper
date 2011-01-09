@@ -7,6 +7,8 @@ Funcionan correctamente todos los juegos que he probado, y el rendimiento es bas
 
 El objetivo del proyecto es mostrar los principios básicos de la emulación, así que te animo a que juegues todo lo que quieras con el código :D
 
+El único requisito es subir los ficheros a un servidor web que soporte PHP, ya que la carga de los juegos se hace con una pequeña página (loadrom.php) que transforma el binario en un array de JavaScript.
+
 Si tienes alguna sugerencia, puedes contactar conmigo por estas vías:
 
 E-mail:		manuelsagra@gmail.com
