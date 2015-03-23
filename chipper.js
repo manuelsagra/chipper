@@ -27,11 +27,157 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 */
 
-// Memoria RAM
-Memory = {
-	_ram: [],
-	_fonts: 
-	[
+// jQuery AJAX binary loading plugin: http://www.henryalgus.com/reading-binary-files-using-jquery-ajax/
+$.ajaxTransport("+binary", function(options, originalOptions, jqXHR){
+	if (window.FormData && ((options.dataType && (options.dataType == 'binary')) || (options.data && ((window.ArrayBuffer && options.data instanceof ArrayBuffer) || (window.Blob && options.data instanceof Blob)))))
+	{
+		return {
+			send: function(headers, callback){
+				var xhr = new XMLHttpRequest(),
+				url = options.url,
+				type = options.type,
+				async = options.async || true,
+				dataType = options.responseType || "blob",
+				data = options.data || null,
+				username = options.username || null,
+				password = options.password || null;
+
+				xhr.addEventListener('load', function(){
+					var data = {};
+					data[options.dataType] = xhr.response;
+					callback(xhr.status, xhr.statusText, data, xhr.getAllResponseHeaders());
+				});
+
+				xhr.open(type, url, async, username, password);
+
+				for (var i in headers ) {
+					xhr.setRequestHeader(i, headers[i]);
+				}
+
+				xhr.responseType = dataType;
+				xhr.send(data);
+			},
+			abort: function(){
+				jqXHR.abort();
+			}
+		};
+	}
+});
+
+var Chipper = function() {
+	this.memory = new Memory(this);
+	this.screen = new Screen(this);
+	this.sound = new Sound();
+	this.keyboard = new Keyboard(this);
+	this.cpu = new CPU(this);
+};
+Chipper.prototype = {
+	inspf: 8,	// Instructions per frame
+	run: 0,
+	start: 0,
+	frames: 0,
+
+	init: function() {
+		this.screen.init();
+		this.sound.init();
+		this.keyboard.init();
+	},
+
+	reset: function() {
+		this.memory.reset();
+		this.cpu.reset();
+		this.screen.setMode(1);
+		this.keyboard.waiting = false;
+		this.start = 0;
+		this.frames = 0;
+	},
+
+	load: function() {
+		this.cpu.reg.exit = true;
+		var chp = this;
+		$.ajax({
+			url: $('#romfile').val(),
+			dataType: 'binary',
+			headers: {
+				'Content-Type': 'application/octet-stream',
+				'X-Requested-With': 'XMLHttpRequest'
+			},
+        		processData: false,
+			success: function(data) {
+				chp.memory.load(data);
+			}
+		});
+	},
+
+	showFPS: function(fps) {
+		if (!fps || fps == '') {
+			fps = 0;
+		}
+		if (parseInt(fps) < 10) {
+			fps = '0' + parseInt(fps);
+		}
+		$('#fps0').css({
+			backgroundPosition: '0px ' + (-37 * (1 + parseInt(fps.charAt(0)))) + 'px'
+		});
+		$('#fps1').css({
+			backgroundPosition: '0px ' + (-37 * (1 + parseInt(fps.charAt(1)))) + 'px'
+		});
+	},
+
+	frame: function() {
+		var t0 = (new Date()).getTime();
+		if (this.start == 0) {
+			this.start = t0;
+		}
+
+		// Timers
+		if (this.cpu.reg.dt > 0) {
+			this.cpu.reg.dt--;
+		}
+		if (this.cpu.reg.st > 0) {
+			this.cpu.reg.st--;
+			this.sound.play();
+		} else {
+			this.sound.stop();
+		}
+
+		// Keyboard
+		if (this.keyboard.waiting) {
+			this.keyboard.checkWait();
+		} else {
+			for (var i = 0; i < this.inspf; i++) {
+				if (!this.keyboard.waiting && !this.cpu.reg.exit) {
+					this.cpu.execute();
+				}
+			}
+			this.screen.render();
+		}
+
+		// Frame counting
+		this.frames++;
+		var t1 = (new Date()).getTime();
+		this.showFPS(Math.floor(1000 * this.frames / (t1 - this.start)).toString());
+
+		// Next frame
+		if (!this.cpu.reg.exit) {
+			var chp = this;
+			if ((t1 - t0) < 16) {
+				setTimeout(function() {
+					chp.frame();
+				}, 16 - (t1 - t0));
+			} else {
+				this.frame();
+			}
+		}
+	}
+};
+
+var Memory = function(chipper) {
+	this.chipper = chipper;
+};
+Memory.prototype = {
+	ram: [],
+	fonts: [
 		0xf0, 0x90, 0x90, 0x90, 0xf0,	// 0
 		0x20, 0x60, 0x20, 0x20, 0x70,	// 1
 		0xf0, 0x10, 0xf0, 0x80, 0xf0,	// 2
@@ -49,351 +195,361 @@ Memory = {
 		0xf0, 0x80, 0xf0, 0x80, 0xf0,	// E
 		0xf0, 0x80, 0xf0, 0x80, 0x80 	// F
 	],
-	
-	// Se inicializa la memoria
-	reset: function () {
-		for (var i=0;i<0x1000;i++) 			// 4KB de memoria
-			Memory._ram[i]=0;
-			
-		for (var i=0;i<Memory._fonts.length;i++) 	// Fuentes
-			Memory._ram[i]=Memory._fonts[i];
-	}, 
-	
-	// Se carga un array en la memoria (a partir de 0x200)
-	load: function (romdata) {
-		for (var i=0;i<romdata.length;i++)
-			Memory._ram[i+0x200]=romdata[i];	
+
+	reset: function() {
+		for (var i = 0; i < 0x1000; i++) {		// 4KB RAM
+			this.ram[i] = 0;
+		}
+		for (var i = 0; i < this.fonts.length; i++) {	// Fonts
+			this.ram[i] = this.fonts[i];
+		}
 	},
-	
-	// Devuelve un byte de una dirección de la memoria
-	read8: function (dir) {
-		return Memory._ram[dir];	
+
+	load: function(data) {
+		this.chipper.reset();
+		this.chipper.cpu.reg.exit = true;
+		var mem = this;
+		var reader = new FileReader();
+		reader.addEventListener("loadend", function() {
+			var arr = new Uint8Array(this.result);
+			for (var i = 0; i < arr.length; i++) {
+				mem.ram[i + 0x200] = arr[i] & 0xff;
+			}
+			mem.chipper.cpu.reg.exit = false;
+			mem.chipper.frame();
+		});
+		reader.readAsArrayBuffer(data);
 	},
-	
-	// Devuelve dos bytes de una dirección de memoria
-	read16: function (dir) {
-		return (Memory._ram[dir]<<8)+Memory._ram[dir+1];		
+
+	read8: function(address) {
+		return this.ram[address];
 	},
-	
-	// Escribe un byte en una dirección de memoria
-	write8: function (dir, val) {
-		Memory._ram[dir]=val;
+
+	read16: function(address) {
+		return (this.ram[address] << 8) + this.ram[address + 1];
 	},
-	
-	// Escribe dos bytes en una dirección de memoria
-	write16: function (dir, val) {
-		Memory._ram[dir]=(val&0xff00)>>8;
-		Memory._ram[dir+1]=val&0xff;
+
+	write8: function(address, val) {
+		this.ram[address] = val;
+	},
+
+	write16: function(address, val) {
+		this.ram[address] = (val & 0xff00) >> 8;
+		this.ram[address + 1] = val & 0xff;
 	}
 };
-	
-// Simulación de la pantalla	
-Screen = {		
-	_canvas: {},			// Se pinta sobre un "lienzo" HTML5
-	_canvasctx: {},			// El contexto del lienzo
-	_canvaswidth: 0,		// Debe ser un múltiplo de 128
-	_canvasheight: 0,		// Debe ser un múltiplo de 64
-	_pixelsize: 0,			// Para ver lo grandes que tienen que ser los píxeles
-	_mode: 1,			// 1: 64x32, 2: 128x64
-	_vram: [],			// Memoria de vídeo
-	_vramsize: 0,			// Tamaño de la memoria de vídeo	
-	_changes: false,		// Indica si ha habido cambios en un frame
-	_patternimg: 'img/pixel.png',	// Imagen de fondo para los píxeles	
-	_pattern: null, 
-	
-	// Se inicializa la pantalla
-	init: function () {
-		var canvastmp=$("#chipperscreen");
+
+var Screen = function(chipper) {
+	this.chipper = chipper;
+};
+Screen.prototype = {
+	canvas: {},
+	canvasCtx: {},
+	canvasWidth: 0,
+	canvasHeight: 0,
+	screenWidth: 64,
+	screenHeight: 32,
+	pixelSize: 0,
+	mode: 1,			// 1: 64x32, 2: 128x64
+	vram: [],
+	vramSize: 0,
+	changed: false,			// Frame changed?
+	patternImg: 'img/pixel.png',
+	pattern: null,
+
+	init: function() {
 		if (!(document.createElement('canvas').getContext('2d'))) {
-			alert("Error al inicializar pantalla");
+			alert("Error getting canvas!");
 			return;
 		}
-		Screen._canvas=canvastmp[0];	
-		Screen._canvasctx=Screen._canvas.getContext('2d');	
-		Screen.setmode(1);
-		if (Screen._pattern==null) {
-			var img=new Image();
-			img.src=Screen._patternimg;
-			img.onload = function(){
-				var ptrn=Screen._canvasctx.createPattern(img,'repeat');
-				Screen._pattern=ptrn;
+		this.canvas = $("#chipperScreen")[0];
+		this.canvasCtx = this.canvas.getContext('2d');
+		this.setMode(1);
+		if (this.pattern == null) {
+			var img = new Image();
+			img.src = this.patternImg;
+			var scr = this;
+			img.onload = function() {
+				scr.pattern = scr.canvasCtx.createPattern(img, 'repeat');
 			}
-		}	
-	},
-	
-	// Se borra la pantalla
-	clear: function () {
-		Screen._canvas.width=Screen._canvas.width;	// Algo tan simple como esto inicializa el canvas		
-		for (var i=0;i<Screen._vramsize;i++)		// Vaciamos la VRAM
-			Screen._vram[i]=0;	
-	},
-	
-	// Se pinta un sprite
-	drawsprite: function (x,y,n) {
-		// Si n==0, es un sprite de 16x16, si no, uno de 8xn
-		if (n==0) {
-			n=16;
-			w=16;
-		} else {
-			w=8;
 		}
-		CPU._reg.v[0xf]=0;
-		
-		for (var i=0;i<n;i++) {				// Pintamos línea a línea
-			var l=(w==8)?Memory.read8(CPU._reg.i+i).toString(2):Memory.read16(CPU._reg.i+2*i).toString(2);	
-			while (l.length<w)			// Cogemos la línea y la pasamos a binario,
-				l="0"+l;			// añadiendo tantos ceros a la izquierda como sea necesario
-			for (j=0;j<w;j++) { 
-				if (l.charAt(j)=="1") {		// Pintamos pixel a pixel con XOR
-					var vx=x+j;		// Coordenada x virtual en la que tenemos que pintar
-					var vy=y+i;		// Coordenada y virtual en la que tenemos que pintar
-					
-					if (vx>((1<<(5+Screen._mode))-1))	vx-=((1<<(5+Screen._mode))-1);	// Si nos salimos de la pantalla,
-					if (vy>((1<<(4+Screen._mode))-1))	vx-=((1<<(4+Screen._mode))-1);	// pintamos al otro lado
-					
-					var posvram=(1<<(5+Screen._mode))*vy+vx;				// Posición en la vram en la que pintamos			
-					Screen._vram[posvram]^=1;						// Pintamos con XOR										
-					if (!Screen._vram[posvram]) CPU._reg.v[0xf]=1;				// Si ha habido colisión, ponemos el flag a 1
-					
-					Screen._changes=true;
+	},
+
+	clear: function() {
+		this.canvas.width = this.canvas.width;	// Little hack
+		for (var i = 0; i < this.vramSize; i++) {
+			this.vram[i] = 0;
+		}
+	},
+
+	drawSprite: function(x, y, n) {
+		console.log(x, y, n);
+		var w = 8;
+		if (n == 0) {
+			n = 16;
+			w = 16;
+		}
+		this.chipper.cpu.reg.v[0xf] = 0;
+
+		// Draw line by line
+		for (var i = 0; i < n; i++) {
+			var l = (w == 8) ? this.chipper.memory.read8(this.chipper.cpu.reg.i + i).toString(2) : this.chipper.memory.read16(this.chipper.cpu.reg.i + 2 * i).toString(2);
+			while (l.length < w) {
+				l = "0" + l;
+			}
+			for (var j = 0; j < w; j++) {
+				if (l.charAt(j) == "1") {	// XOR pixel painting
+					var vx = x + j;
+					var vy = y + i;
+
+					// Screen wrapping
+					if (vx > this.screenWidth) {
+						vx -= this.screenWidth;
+					} else if (vx < 0) {
+						vx += this.screenWidth;
+					}
+					if (vy > this.screenHeight) {
+						vy -= this.screenHeight;
+					} else if (vy < 0) {
+						vy += this.screenHeight;
+					}
+
+					var posvram = this.screenWidth * vy + vx;
+					this.vram[posvram] ^= 1;
+
+					// Collision?
+					if (this.vram[posvram] == 0) {
+						this.chipper.cpu.reg.v[0xf] = 1;
+					}
+
+					this.changed = true;
 				}
 			}
 		}
 	},
-	
-	// Se hace scroll en el eje x (SCHIP)
-	scrollx: function (x) {
-		var lines=x*Screen._mode/2;			// En baja resolución se mueven la mitad de líneas
-		var newvram=[];
 
-		// Creamos una nueva vram vacía
-		for (var i=0;i<Screen._vramsize;i++)
-			newvram[i]=0;
+	scrollX: function(x) {
+		var lines = x * this.mode/ 2;
+		var newvram = [];
 
-		// Hacemos el scroll
-		var rx=1<<(5+Screen._mode);
-		var ry=1<<(4+Screen._mode);
-		for (var y=0;y<ry;y++) {
-			var skip=y<<(5+Screen._mode);
-			if (lines>0) {
-				for (var x=lines;x<rx;x++)
-					newvram[x-lines+skip]=Screen._vram[x+skip];
+		for (var i = 0; i < vramSize; i++) {
+			newvram[i] = 0;
+		}
+		var rx = 1 << (5 + this.mode);
+		var ry = 1 << (4 + this.mode);
+		for (var y = 0; y < ry; y++) {
+			var skip = y << (5 + this.mode);
+			if (lines > 0) {
+				for (var x = lines; x < rx; x++) {
+					newvram[x - lines + skip] = this.vram[x + skip];
+				}
 			} else {
-				for (var x=0;x<(rx+lines);x++)
-					newvram[x+skip]=Screen._vram[x-lines+skip];	
-			}
-		}
-
-		// Guardamos la memoria	
-		Screen._vram=newvram.slice();	     
-		Screen._changes=true;
-	},
-	
-	// Se hace scroll en el eje y hacia abajo (SCHIP)
-	scrolly: function (y) {
-		var lines=Math.floor(y*Screen._mode/2);		// En baja resolución se mueven la mitad de líneas
-		var newvram=[];
-
-		// Creamos una nueva vram vacía
-		for (var i=0;i<Screen._vramsize;i++)
-		     newvram[i]=0;
-     
-		// Hacemos el scroll
-		var skip=lines<<(5+Screen._mode);
-		for (var i=0;i<(Screen._vramsize-skip);i++)
-			newvram[i+skip]=Screen._vram[i];
-
-		// Guardamos la memoria	
-		Screen._vram=newvram.slice();
-		Screen._changes=true;
-	},
-	
-	// Si ha habido cambios, se pinta el frame en el canvas
-	render: function () {
-		if (Screen._changes) {
-			Screen._canvas.width=Screen._canvas.width;
-			// Miramos si se ya ha cargado la imagen
-			if (Screen._pattern!=null)  	
-				Screen._canvasctx.fillStyle=Screen._pattern;
-			else 
-				Screen._canvasctx.fillStyle='#000';	
-
-			for (var i=0;i<Screen._vramsize;i++) {
-				if (Screen._vram[i]) {	// Pintamos un pixel
-					var y=i>>(5+Screen._mode);
-					var x=i%(1<<(5+Screen._mode));
-					Screen._canvasctx.fillRect(x*Screen._pixelsize,y*Screen._pixelsize,Screen._pixelsize,Screen._pixelsize);
+				for (var x = 0; x < (rx + lines); x++) {
+					newvram[x + skip] = this.vram[x - lines + skip];
 				}
 			}
-			Screen._changes=false;
+		}
+
+		this.vram = newvram.slice();
+		this.changed = true;
+	},
+
+
+	scrollY: function(y) {
+		var lines = Math.floor(y * this.mode / 2);
+		var newvram = [];
+
+		for (var i=0;i<vramSize;i++) {
+		     newvram[i] = 0;
+     		}
+
+		var skip = lines << (5 + this.mode);
+		for (var i = 0; i < (vramSize - skip); i++) {
+			newvram[i + skip] = this.vram[i];
+		}
+
+		this.vram = newvram.slice();
+		this.changed = true;
+	},
+
+	render: function() {
+		if (this.changed) {
+			this.canvas.width = this.canvas.width;
+			if (this.pattern != null) {
+				this.canvasCtx.fillStyle = this.pattern;
+			} else {
+				this.canvasCtx.fillStyle = '#000';
+			}
+
+			for (var i = 0; i < this.vramSize; i++) {
+				if (this.vram[i] == 1) {
+					var y = i >> (5 + this.mode);
+					var x = i % (1 << (5 + this.mode));
+					this.canvasCtx.fillRect(x * this.pixelSize, y * this.pixelSize, this.pixelSize, this.pixelSize);
+				}
+			}
+			this.changed = false;
 		}
 	},
-	
-	// Se cambia el modo de pantallaZZ
-	setmode: function (m) {
-		Screen._mode=m;		
-		Screen._pixelsize=Screen._canvas.width>>(6+(m-1));
-		// Para simplificar las cosas, usamos un byte por cada pixel, aunque la información sea de un bit
-		Screen._vramsize=1<<(11+(2*(m-1)));
-		Screen.clear();	
+
+	setMode: function(m) {
+		this.mode = m;
+		this.screenWidth = 64 * m;
+		this.screenHeight = 32 * m;
+		this.pixelSize = this.canvas.width >> (6 + (m - 1));
+		this.vramSize = this.screenWidth * this.screenHeight;
+		this.clear();
 	}
 };
 
-// Emulación del sonido
-Sound = {
-	_audio: {},		// Usamos HTML5
-	
-	// Coge el elemento de la página
-	init: function () {
+var Sound = function() {
+};
+Sound.prototype = {
+	audio: {},
+
+	init: function() {
 		if (!(document.createElement('audio').canPlayType)) {
-			alert("Error al inicializar el sonido");
+			alert("Error intializing sound!");
 			return;
-		}	
-		var audiotmp=$("#chipperaudio");
-		Sound._audio=audiotmp[0];
+		}
+		this.audio = $("#chipperAudio")[0];
 	},
-	
-	// Reproduce el sonido
-	play: function () {
-		if (Sound._audio.currentTime>2000)
-			Sound._audio.currentTime=0;	
-		Sound._audio.play();
+
+	play: function() {
+		if (this.audio.currentTime > 2000) {
+			this.audio.currentTime = 0;
+		}
+		this.audio.play();
 	},
-	
-	// Detiene el sonido
-	stop: function () {
-	 	Sound._audio.pause();
+
+	stop: function() {
+	 	this.audio.pause();
 	}
 };
-	
-// Emulación del teclado hexadecimal (botones y también 1234/QWER/ASDF/ZXCV)
-Keyboard = {
-	_waiting: false,	// Indica si estamos esperando pulsación
-	_waitreg: 0,		// Indica el registro que se cargará al esperar
-	_keys: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],		// Matriz de teclado
 
-	// Mira a ver si se ha pulsado la letra
-	check: function (k) {
-		return (Keyboard._keys[k]==1);	
-	},	
-	
-	// Pone el modo de espera del teclado
-	wait: function (r) {
-		Keyboard._waiting=true;
-		Keyboard._waitreg=r;
+var Keyboard = function(chipper) {
+	this.chipper = chipper;
+};
+Keyboard.prototype = {
+	waiting: false,
+	waitReg: 0,
+	keyMatrix: [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+
+	check: function(k) {
+		return this.keyMatrix[k];
 	},
-	
-	// Comprueba el buffer para ver si se ha presionado alguna tecla	
-	checkwait: function () {
-		for (var i=0;i<16;i++) {
-			if (Keyboard._keys[i]!=0) {
-				CPU._reg.v[Keyboard._waitreg]=i;
-				Keyboard._waiting=false;
+
+	wait: function(r) {
+		this.waiting = true;
+		this.waitReg = r;
+	},
+
+	checkWait: function() {
+		for (var i = 0; i < this.keyMatrix.length; i++) {
+			if (this.keyMatrix[i]) {
+				this.chipper.cpu.reg.v[this.waitReg] = i;
+				this.waiting = false;
 				break;
 			}
-		}	
+		}
 	},
-		
-	// Inicializa el teclado
-	init: function () {
-		for (var i=0;i<16;i++) {		
-			$('#b'+i.toString(16)).mousedown(function () {
-				Keyboard._keys[parseInt(this.id.charAt(1),16)]=1;
+
+	init: function() {
+		for (var i = 0; i < this.keyMatrix.length; i++) {
+			var kb = this;
+			$('#b' + i.toString(16)).mousedown(function() {
+				kb.keyMatrix[parseInt(this.id.charAt(1), 16)] = true;
 			});
-			$('#b'+i.toString(16)).mouseup(function () {
-				Keyboard._keys[parseInt(this.id.charAt(1),16)]=0;
+			$('#b' + i.toString(16)).mouseup(function() {
+				kb.keyMatrix[parseInt(this.id.charAt(1), 16)] = false;
 			});
 		}
-		$(document).keydown(Keyboard.keydown);
-		$(document).keyup(Keyboard.keyup);
 	},
-	
-	// Comprueba las pulsaciones del teclado
-	keydown: function (e) {
-		switch(e.keyCode)
-		{
-			case 88: Keyboard._keys[0x0]=1; break;	// Tecla x
-			case 49: Keyboard._keys[0x1]=1; break;	// Tecla 1
-			case 50: Keyboard._keys[0x2]=1; break;	// Tecla 2
-			case 51: Keyboard._keys[0x3]=1; break;	// Tecla 3
-			case 81: Keyboard._keys[0x4]=1; break;	// Tecla q
-			case 87: Keyboard._keys[0x5]=1; break;	// Tecla w
-			case 69: Keyboard._keys[0x6]=1; break;	// Tecla e
-			case 65: Keyboard._keys[0x7]=1; break;	// Tecla a
-			case 83: Keyboard._keys[0x8]=1; break;	// Tecla s
-			case 68: Keyboard._keys[0x9]=1; break;	// Tecla d
-			case 90: Keyboard._keys[0xa]=1; break;	// Tecla z
-			case 67: Keyboard._keys[0xb]=1; break;	// Tecla c
-			case 52: Keyboard._keys[0xc]=1; break;	// Tecla 4
-			case 82: Keyboard._keys[0xd]=1; break;	// Tecla r
-			case 70: Keyboard._keys[0xe]=1; break;	// Tecla f
-			case 86: Keyboard._keys[0xf]=1; break;	// Tecla v
-		}	
+
+	keyDown: function(keyCode) {
+		switch(keyCode) {
+			case 88: this.keyMatrix[0x0] = true; break;	// Key x
+			case 49: this.keyMatrix[0x1] = true; break;	// Key 1
+			case 50: this.keyMatrix[0x2] = true; break;	// Key 2
+			case 51: this.keyMatrix[0x3] = true; break;	// Key 3
+			case 81: this.keyMatrix[0x4] = true; break;	// Key q
+			case 87: this.keyMatrix[0x5] = true; break;	// Key w
+			case 69: this.keyMatrix[0x6] = true; break;	// Key e
+			case 65: this.keyMatrix[0x7] = true; break;	// Key a
+			case 83: this.keyMatrix[0x8] = true; break;	// Key s
+			case 68: this.keyMatrix[0x9] = true; break;	// Key d
+			case 90: this.keyMatrix[0xa] = true; break;	// Key z
+			case 67: this.keyMatrix[0xb] = true; break;	// Key c
+			case 52: this.keyMatrix[0xc] = true; break;	// Key 4
+			case 82: this.keyMatrix[0xd] = true; break;	// Key r
+			case 70: this.keyMatrix[0xe] = true; break;	// Key f
+			case 86: this.keyMatrix[0xf] = true; break;	// Key v
+		}
 	},
-	
-	// Comprueba las teclas levantadas
-	keyup: function (e) {
-		switch(e.keyCode)
-		{
-			case 88: Keyboard._keys[0x0]=0; break;	// Tecla x
-			case 49: Keyboard._keys[0x1]=0; break;	// Tecla 1
-			case 50: Keyboard._keys[0x2]=0; break;	// Tecla 2
-			case 51: Keyboard._keys[0x3]=0; break;	// Tecla 3
-			case 81: Keyboard._keys[0x4]=0; break;	// Tecla q
-			case 87: Keyboard._keys[0x5]=0; break;	// Tecla w
-			case 69: Keyboard._keys[0x6]=0; break;	// Tecla e
-			case 65: Keyboard._keys[0x7]=0; break;	// Tecla a
-			case 83: Keyboard._keys[0x8]=0; break;	// Tecla s
-			case 68: Keyboard._keys[0x9]=0; break;	// Tecla d
-			case 90: Keyboard._keys[0xa]=0; break;	// Tecla z
-			case 67: Keyboard._keys[0xb]=0; break;	// Tecla c
-			case 52: Keyboard._keys[0xc]=0; break;	// Tecla 4
-			case 82: Keyboard._keys[0xd]=0; break;	// Tecla r
-			case 70: Keyboard._keys[0xe]=0; break;	// Tecla f
-			case 86: Keyboard._keys[0xf]=0; break;	// Tecla v	
+
+	keyUp: function(keyCode) {
+		switch(keyCode) {
+			case 88: this.keyMatrix[0x0] = false; break;	// Key x
+			case 49: this.keyMatrix[0x1] = false; break;	// Key 1
+			case 50: this.keyMatrix[0x2] = false; break;	// Key 2
+			case 51: this.keyMatrix[0x3] = false; break;	// Key 3
+			case 81: this.keyMatrix[0x4] = false; break;	// Key q
+			case 87: this.keyMatrix[0x5] = false; break;	// Key w
+			case 69: this.keyMatrix[0x6] = false; break;	// Key e
+			case 65: this.keyMatrix[0x7] = false; break;	// Key a
+			case 83: this.keyMatrix[0x8] = false; break;	// Key s
+			case 68: this.keyMatrix[0x9] = false; break;	// Key d
+			case 90: this.keyMatrix[0xa] = false; break;	// Key z
+			case 67: this.keyMatrix[0xb] = false; break;	// Key c
+			case 52: this.keyMatrix[0xc] = false; break;	// Key 4
+			case 82: this.keyMatrix[0xd] = false; break;	// Key r
+			case 70: this.keyMatrix[0xe] = false; break;	// Key f
+			case 86: this.keyMatrix[0xf] = false; break;	// Key v
 		}
 	}
 };
 
-// Chip-8 no tiene una CPU "real", pero funciona de manera análoga
-CPU = {
-	// Registros
-	_reg: {
-		v: [],		// Registros V (16 de 8 bits)
-		pc: 0x200,	// Contador de Programa (normalmente en 0x200, salvo programas de ETI 660)
-		sp: 0x200,	// Puntero de pila. Lo ponemos en 0x200, pero el valor es arbitrario
+var CPU = function(chipper) {
+	this.chipper = chipper;
+};
+CPU.prototype = {
+	reg: {
+		v: [],
+		pc: 0x200,	// Program Counter (usually 0x200, save from ETI 660 programs)
+		sp: 0x200,	// Stack Pointer. Arbitrary value...
 		dt: 0,		// Delay Timer
 		st: 0,		// Sound Timer
-		i: 0,		// Registro para guardar posiciones de memoria
-		exit: false	// Indica que hemos terminado la ejecución
+		i: 0,
+		exit: false
 	},
-	
-	// Se inicializan los registros
-	reset: function () {
-		for (var i=0;i<16;i++)	// Se inicializan los 16 registros V
-			CPU._reg.v[i]=0;
-		CPU._reg.pc=0x200;
-		CPU._reg.sp=0x100;
-		CPU._reg.dt=0;
-		CPU._reg.st=0;
-		CPU._reg.i=0;
-		CPU._reg.exit=false;
+
+	reset: function() {
+		for (var i = 0; i<16 ; i++) {
+			this.reg.v[i] = 0;
+		}
+		this.reg.pc = 0x200;
+		this.reg.sp = 0x100;
+		this.reg.dt = 0;
+		this.reg.st = 0;
+		this.reg.i = 0;
+		this.reg.exit = false;
 	},
-	
-	// Ejecuta una instrucción
-	exec: function () {
-		var opcode=Memory.read16(CPU._reg.pc);
-		
-		var nnn=(opcode&0xfff);		// Últimos 12 bits
-		
-		var b1=(opcode&0xff00)>>8;	// Primer byte
-		var b2=(opcode&0xff);		// Segundo byte
-		
-		var n1=(opcode&0xf000)>>12;	// Primer nibble
-		var n2=(opcode&0xf00)>>8; 	// Segundo nibble
-		var n3=(opcode&0xf0)>>4;	// Tercer nibble
-		var n4=(opcode&0xf);		// Cuarto nibble
-		
+
+	execute: function() {
+		var opcode = this.chipper.memory.read16(this.reg.pc);
+
+		var nnn = (opcode & 0xfff);
+
+		var b1 = (opcode & 0xff00) >> 8;
+		var b2 = (opcode & 0xff);
+
+		var n1 = (opcode & 0xf000) >> 12;
+		var n2 = (opcode & 0xf00) >> 8;
+		var n3 = (opcode & 0xf0) >> 4;
+		var n4 = (opcode & 0xf);
+
+		this.reg.pc += 2;
+
 		switch (n1) {
 			case 0:
 				switch (b2) {
@@ -413,300 +569,215 @@ CPU = {
 					case 0xcd:
 					case 0xce:
 					case 0xcf:	// SCD n (SCHIP)
-						Screen.scrolly(n4);
+						this.chipper.screen.scrollY(n4);
 						break;
 					case 0xe0:	// CLS
-						Screen.clear();
+						this.chipper.screen.clear();
 						break;
 					case 0xee:	// RET
-						CPU.ret();
+						this.reg.pc = this.chipper.memory.read16(this.reg.sp);
+						this.reg.sp += 2;
 						break;
 					case 0xfb:	// SCR (SCHIP)
-						Screen.scrollx(4);
+						this.chipper.screen.scrollX(4);
 						break;
 					case 0xfc:	// SCL (SCHIP)
-						Screen.scrollx(-4);
+						this.chipper.screen.scrollX(-4);
 						break;
 					case 0xfd:	// EXIT (SCHIP)
-						CPU._reg.exit=true;
+						this.reg.exit = true;
 						break;
 					case 0xfe:	// LOW (SCHIP)
-						Screen.setmode(1);
+						this.chipper.screen.setMode(1);
 						break;
 					case 0xff:	// HIGH (SCHIP)
-						Screen.setmode(2);
+						this.chipper.screen.setMode(2);
 						break;
 					default:
-						//console.log('Opcode inválido');
 						break;
 				}
 				break;
-			case 0x1:		// JP nnn	
-				CPU._reg.pc=nnn;
-				return;
+			case 0x1:		// JP nnn
+				this.reg.pc = nnn;
 				break;
 			case 0x2:		// CALL nnn
-				CPU.call(nnn);	
-				return;
+				this.reg.sp -=2;
+				this.chipper.memory.write16(this.reg.sp, this.reg.pc);
+				this.reg.pc = nnn;
 				break;
 			case 0x3:		// SE Vx, nn
-				if (CPU._reg.v[n2]==b2) CPU._reg.pc+=2; 
+				if (this.reg.v[n2] == b2) {
+					this.reg.pc += 2;
+				}
 				break;
 			case 0x4:		// SNE Vx, nn
-				if (CPU._reg.v[n2]!=b2) CPU._reg.pc+=2;
+				if (this.reg.v[n2] != b2) {
+					this.reg.pc += 2;
+				}
 				break;
 			case 0x5:		// SE Vx, Vy
-				if (n4==0) {
-					if (CPU._reg.v[n2]==CPU._reg.v[n3]) CPU._reg.pc+=2;	
-				} else {
-					//console.log('Opcode inválido');
+				if (n4 == 0) {
+					if (this.reg.v[n2] == this.reg.v[n3]) {
+						this.reg.pc += 2;
+					}
 				}
 				break;
 			case 0x6:		// LD Vx, nn
-				CPU._reg.v[n2]=b2;
+				this.reg.v[n2] = b2;
 				break;
 			case 0x7:		// ADD Vx, nn
-				CPU._reg.v[n2]+=b2;
-				CPU._reg.v[n2]&=0xff;
+				this.reg.v[n2] += b2;
+				this.reg.v[n2] &= 0xff;
 				break;
 			case 0x8:
 				switch (n4) {
 					case 0x0:		// LD Vx, Vy
-						CPU._reg.v[n2]=CPU._reg.v[n3];
+						this.reg.v[n2] = this.reg.v[n3];
 						break;
 					case 0x1:		// OR Vx, Vy
-						CPU._reg.v[n2]|=CPU._reg.v[n3];
+						this.reg.v[n2] |= this.reg.v[n3];
 						break;
 					case 0x2:		// AND Vx, Vy
-						CPU._reg.v[n2]&=CPU._reg.v[n3];
+						this.reg.v[n2] &= this.reg.v[n3];
 						break;
 					case 0x3:		// XOR Vx, Vy
-						CPU._reg.v[n2]^=CPU._reg.v[n3];
+						this.reg.v[n2] ^= this.reg.v[n3];
 						break;
 					case 0x4:		// ADD Vx, Vy
-						CPU._reg.v[n2]+=CPU._reg.v[n3];
-						CPU._reg.v[0xf]=CPU._reg.v[n2]>>8;	// Acarreo
-						CPU._reg.v[n2]&=0xff;
+						this.reg.v[n2] += this.reg.v[n3];
+						this.reg.v[0xf] = (this.reg.v[n2] > 0xff) ? 1 : 0;
+						this.reg.v[n2] &= 0xff;
 						break;
 					case 0x5:		// SUB Vx, Vy
-						CPU._reg.v[0xf]=(CPU._reg.v[n2]>=CPU._reg.v[n3])?1:0;
-						CPU._reg.v[n2]-=CPU._reg.v[n3];						
-						CPU._reg.v[n2]&=0xff;
+						this.reg.v[0xf] = (this.reg.v[n2] > this.reg.v[n3]) ? 1 : 0;
+						this.reg.v[n2] -= this.reg.v[n3];
+						this.reg.v[n2] &= 0xff;
 						break;
 					case 0x6:		// SHR Vx {,Vy}
-						CPU._reg.v[0xf]=CPU._reg.v[n2]&0x1;
-						CPU._reg.v[n2]>>=1;
-						CPU._reg.v[n2]&=0xff;
+						this.reg.v[0xf] = this.reg.v[n2] & 1;
+						this.reg.v[n2] >>= 1;
 						break;
 					case 0x7:		// SUBN Vx, Vy
-						CPU._reg.v[0xf]=(CPU._reg.v[n3]>=CPU._reg.v[n2])?1:0;
-						CPU._reg.v[n2]=CPU._reg.v[n3]-CPU._reg.v[n2];						
-						CPU._reg.v[n2]&=0xff;
+						this.reg.v[0xf] = (this.reg.v[n3] > this.reg.v[n2]) ? 1 : 0;
+						this.reg.v[n2] = this.reg.v[n3] - this.reg.v[n2];
+						this.reg.v[n2] &= 0xff;
 						break;
 					case 0xe:		// SHL Vx {,Vy}
-						CPU._reg.v[0xf]=CPU._reg.v[n2]>>7;
-						CPU._reg.v[n2]<<=1;
-						CPU._reg.v[n2]&=0xff;
+						this.reg.v[0xf] = (this.reg.v[n2] >> 7);
+						this.reg.v[n2] <<= 1;
+						this.reg.v[n2] &= 0xff;
 						break;
 					default:
-						//console.log('Opcode inválido');
 						break;
 				}
 				break;
 			case 0x9:		// SNE Vx, Vy
-				if (n4==0) {
-					if (CPU._reg.v[n2]!=CPU._reg.v[n3]) CPU._reg.pc+=2;	
-				} else {
-					//console.log('Opcode inválido');
+				if (n4 == 0) {
+					if (this.reg.v[n2] != this.reg.v[n3]) {
+						this.reg.pc += 2;
+					}
 				}
 				break;
 			case 0xa:		// LD I, nnn
-				CPU._reg.i=nnn;
+				this.reg.i = nnn;
 				break;
 			case 0xb:		// JP V0, nnn
-				CPU._reg_pc=nnn+CPU_reg.v[0];
-				return;
+				this.reg.pc = nnn + this.reg.v[0];
 				break;
 			case 0xc:		// RND Vx, nn
-				CPU._reg.v[n2]=Math.round(Math.random()*10000)&b2;
+				this.reg.v[n2] = Math.floor(Math.random() * 10000) & b2;
 				break;
 			case 0xd:		// DRW Vx, Vy, n
-				Screen.drawsprite(CPU._reg.v[n2],CPU._reg.v[n3],n4);
+				this.chipper.screen.drawSprite(this.reg.v[n2], this.reg.v[n3], n4);
 				break;
 			case 0xe:
 				switch (b2) {
 					case 0x9e:	// SKP Vx
-						if (Keyboard.check(CPU._reg.v[n2])) CPU._reg.pc+=2; 
+						if (this.chipper.keyboard.check(this.reg.v[n2])) {
+							this.reg.pc += 2;
+						}
 						break;
 					case 0xa1:	// SKNP Vx
-						if (!Keyboard.check(CPU._reg.v[n2])) CPU._reg.pc+=2; 
+						if (!this.chipper.keyboard.check(this.reg.v[n2])) {
+							this.reg.pc += 2;
+						}
 						break;
 					default:
-						//console.log('Opcode inválido');
-						break;				
+						break;
 				}
 				break;
 			case 0xf:
 				switch (b2) {
 					case 0x07:	// LD Vx, DT
-						CPU._reg.v[n2]=CPU._reg.dt;
+						this.reg.v[n2] = this.reg.dt;
 						break;
 					case 0x0a:	// LD Vx, K
-						Keyboard.wait(n2);
+						this.chipper.keyboard.wait(n2);
 						break;
 					case 0x15:	// LD DT, Vx
-						CPU._reg.dt=CPU._reg.v[n2];
+						this.reg.dt = this.reg.v[n2];
 						break;
-					case 0x18: // LD ST, Vx
-						CPU._reg.st=CPU._reg.v[n2];
+					case 0x18: 	// LD ST, Vx
+						this.reg.st = this.reg.v[n2];
 						break;
 					case 0x1e:	// ADD I, Vx
-						CPU._reg.i+=CPU._reg.v[n2];
-						CPU._reg.i&=0xfff;
+						this.reg.i += this.reg.v[n2];
+						this.reg.i &= 0xfff;
 						break;
 					case 0x29:	// LD F, Vx
-						CPU._reg.i=CPU._reg.v[n2]*5;
+						this.reg.i = this.reg.v[n2] * 5;
 						break;
 					case 0x33:	// LD B, Vx
-						CPU.bcd(CPU._reg.v[n2]);
+						this.bcd(this.reg.v[n2]);
 						break;
 					case 0x55:	// LD [I], Vx
-						for (var i=0;i<=n2;i++)
-							Memory.write8(CPU._reg.i+i,CPU._reg.v[i]);
+						for (var i = 0; i <= n2; i++) {
+							this.chipper.memory.write8(this.reg.i + i, this.reg.v[i]);
+						}
 						break;
 					case 0x65:	// LD Vx, [I]
-						for (var i=0;i<=n2;i++)
-							CPU._reg.v[i]=Memory.read8(CPU._reg.i+i);
+						for (var i = 0; i <= n2; i++) {
+							this.reg.v[i] = this.chipper.memory.read8(this.reg.i + i);
+						}
 						break;
 					case 0x75:	// LD R, Vx
-						//console.log('Opcode no emulado');
+						console.log('Unemulated opcode');
 						break;
 					case 0x85:	// LD Vx, R
-						//console.log('Opcode no emulado');
+						console.log('Unemulated opcode');
 						break;
 					default:
-						//console.log('Opcode inválido');
-						break;	
+						break;
 				}
-				break;	
-		}		
-		CPU._reg.pc+=2;
+				break;
+		}
 	},
-	
-	//Instrucciones de carga
-	bcd: function (val) {
+
+	bcd: function(val) {
 		var j;
-		for (j=0;val>=100;val-=100) j++;
-		Memory.write8(CPU._reg.i,j);
-		for (j=0;val>=10;val-=10) j++;
-		Memory.write8(CPU._reg.i+1,j);
-		Memory.write8(CPU._reg.i+2,val);	
-	},
-	
-	//Instrucciones de salto y llamada
-	ret: function () {
-		CPU._reg.pc=Memory.read16(CPU._reg.sp);
-		CPU._reg.sp+=2;	
-	},
-	
-	call: function (nnn) {
-		CPU._reg.sp-=2;
-		Memory.write8(CPU._reg.sp,(CPU._reg.pc&0xff00)>>8);
-		Memory.write8(CPU._reg.sp+1,CPU._reg.pc&0xff);
-		CPU._reg.pc=nnn;
-	}
-
-};
-	
-// Poniendo orden a todo esto...
-Chipper = {
-	_inspf: 12,	// Instrucciones por frame
-	_run: 0,	// Variable para el timeout de cada frame
-	_start: 0,	// Tiempo de comienzo en ms
-	_frames: 0,	// Frames emulados
-	
-	// Inicializa el emulador
-	reset: function () {
-		Memory.reset();
-		CPU.reset();
-		Screen.setmode(1);
-		Keyboard._waiting=false;
-		Chipper._start=0;
-		Chipper._frames=0;	
-	},
-	
-	// Carga un fichero en memoria, inicializando el sistema
-	load: function () {
-		clearTimeout(Chipper._run);
-		CPU._reg.exit=true;
-		var url='loadrom.php?f='+escape($('#romfile').val());
-		jQuery.ajax({
-			url: url,
-			success: function(result) {
-				eval(result);		// En romdata tendremos el array de bytes
-				Chipper.reset();
-				Memory.load(romdata);
-				Chipper.frame();	
-			},
-			async: false
-		});
-	},
-	
-	// Muestra los Frames por segundo
-	showfps: function (fps) {		
-		if (fps==null||fps=='') fps=0;
-		// Se formatea fps a dos cifras
-		if (parseInt(fps)<10) fps='0'+parseInt(fps);
-		var f0=parseInt(fps.charAt(0));	// Decenas
-		var f1=parseInt(fps.charAt(1));	// Unidades
-		$('#fps0').css({backgroundPosition: '0px '+(-37*(1+f0))+'px'});
-		$('#fps1').css({backgroundPosition: '0px '+(-37*(1+f1))+'px'});
-	},
-		
-	// Ejecuta un frame
-	frame: function () {
-		var t0=(new Date()).getTime();
-		if (Chipper._start==0) Chipper._start=t0;
-		// Se decrementan los timers
-		if (CPU._reg.dt>0) CPU._reg.dt--;
-		if (CPU._reg.st>0) { 
-			CPU._reg.st--; 
-			Sound.play(); 
-		} else { 
-			Sound.stop(); 
+		for (j = 0; val >= 100; val -= 100) {
+			j++;
 		}
-		
-		// Se comprueba el teclado si estamos esperando	
-		if (Keyboard._waiting) {
-			Keyboard.checkwait();	
-		} else {		
-			for (var i=0;i<Chipper._inspf;i++) {
-				if (!Keyboard._waiting&&!CPU._reg.exit) {	
-					CPU.exec();
-					//console.log(CPU._reg);
-				}		
-			}	
-			Screen.render();
+		this.chipper.memory.write8(this.reg.i, j);
+		for (j = 0; val >= 10; val -= 10) {
+			j++;
 		}
-		
-		// Incrementamos los frames y calculamos los FPS
-		Chipper._frames++;
-		var t1=(new Date()).getTime();
-		Chipper.showfps(Math.floor(1000*Chipper._frames/(t1-Chipper._start)).toString());
-
-		// Si seguimos la ejecución llamamos otra vez a frame para hacer 60FPS
-		if (!CPU._reg.exit) {
-			if ((t1-t0)<16) {
-				Chipper._run=setTimeout(Chipper.frame,16-(t1-t0));
-			} else {
-				Chipper._run=setTimeout(Chipper.frame,0);
-			}
-		}	
+		this.chipper.memory.write8(this.reg.i + 1, j);
+		this.chipper.memory.write8(this.reg.i + 2, val);
 	}
 };
-// Se inicializa el emulador
+
 $(document).ready(function() {
-	Keyboard.init();
-	Sound.init();
-	Screen.init();
+	var chipper = new Chipper();
+	$(document).keyup(function(e) {
+		chipper.keyboard.keyUp(e.keyCode);
+	});
+	$(document).keydown(function(e) {
+		chipper.keyboard.keyDown(e.keyCode);
+	});
+	$('input.run').click(function(e) {
+		chipper.load();
+	});
+	chipper.init();
+	chipper.load();
 });

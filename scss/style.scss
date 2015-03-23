@@ -1,0 +1,137 @@
+@import 'normalize';
+
+/* Basic elements */
+html, button, input, select, textarea {
+	color: #222;
+	font: 1em/1.8em Verdana, sans-serif;
+}
+body {
+	background: #1a3664 url(img/plastic.png);
+	padding: 2em 0 1em;
+}
+a {
+	color: #eee;
+	transition: color 0.3s ease-in-out;
+	&:hover {
+		color: #e35d22;
+	}
+}
+::-moz-selection {
+	background: #b3d4fc;
+	text-shadow: none;
+}
+::selection {
+	background: #b3d4fc;
+	text-shadow: none;
+}
+p {
+	margin-top: 0;
+}
+img {
+	vertical-align: middle;
+}
+.wrapper {
+	width: 90%;
+	max-width: 532px;
+	margin: 0 auto;
+}
+canvas {
+	display: block;
+	margin: 0 0 2em 0;
+	padding: 10px;
+	background: #a8a48b;
+	border-radius: 5px;
+	max-width: 100%;
+	width: 100%;
+	box-sizing: border-box;
+}
+#keyboard {
+	width: 100%;
+	padding: 10px;
+	background: #fff;
+	border-radius: 5px;
+	margin: 0 0 2em 0;
+	thead {
+		display: none;
+	}
+	td {
+		padding: 3px;
+		margin: 0;
+		border-collapse: collapse;
+	}
+	input {
+		display: block;
+		font-size: 1.6em;
+		width: 100%;
+		line-height: 40px;
+		height: 40px;
+		text-align: center;
+		background: #fff;
+		color: #1a3664;
+		border: 1px solid #ccc;
+		border-radius: 8px;
+		cursor: pointer;
+		box-shadow: 3px 3px 3px #eee;
+	}
+}
+select {
+	padding: 3px 4px;
+}
+input.run {
+	border-radius: 5px;
+	padding: 3px 4px;
+	cursor: pointer;
+}
+.fpsdisplay {
+	width: 56px;
+	height: 38px;
+	background: #000;
+	padding: 3px;
+	border-radius: 5px;
+	margin: 0 0 2em 0;
+}
+.fps {
+	float: left;
+	width: 28px;
+	height: 38px;
+	background: url(img/display.png) 0 0 no-repeat;
+}
+h1 {
+	width: 272px;
+	height: 39px;
+	overflow: hidden;
+	text-indent: 100%;
+	background: url(img/logo.png) top left no-repeat;
+	margin: 0 0 20px 0;
+}
+h2, p {
+	font-size: 0.8em;
+	font-weight: normal;
+	text-transform: uppercase;
+	color: #eee;
+}
+.clearfix:before, .clearfix:after {
+	content: " ";
+	display: table;
+}
+.clearfix:after {
+	clear: both;
+}
+.clearfix {
+	*zoom: 1;
+}
+
+
+@media only screen and (min-width: 550px) {
+	#keyboard {
+		width: auto;
+		float: right;
+		input {
+			width: 40px;
+		}
+	}
+	#options {
+		width: 280px;
+		float: left;
+	}
+}

@@ -1,0 +1,72 @@
+/*
+Error: Invalid CSS after "&:": expected pseudoclass or pseudoelement, was " hover"
+        on line 15 of style.scss
+
+10: 	padding: 2em 0;
+11: }
+12: a {
+13: 	color: #eee;
+14: 	transition: color 0.3s ease-in-out;
+15: 	&: hover {
+16: 		color: #ccc;
+17: 	}
+18: }
+19: ::-moz-selection {
+20: 	background: #b3d4fc;
+
+Backtrace:
+style.scss:15
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/parser.rb:1165:in `expected'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/parser.rb:1101:in `expected'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/parser.rb:1096:in `tok!'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/static_parser.rb:277:in `pseudo'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/static_parser.rb:160:in `simple_selector_sequence'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/static_parser.rb:112:in `selector'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/static_parser.rb:86:in `selector_comma_sequence'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/parser.rb:1079:in `expr!'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/scss/static_parser.rb:20:in `parse_selector'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:414:in `visit_rule'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/base.rb:36:in `visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:158:in `block in visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/stack.rb:79:in `block in with_base'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/stack.rb:115:in `with_frame'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/stack.rb:79:in `with_base'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:158:in `visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:420:in `block (2 levels) in visit_rule'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:420:in `map'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:420:in `block in visit_rule'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:179:in `with_environment'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:418:in `visit_rule'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/base.rb:36:in `visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:158:in `block in visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/stack.rb:79:in `block in with_base'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/stack.rb:115:in `with_frame'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/stack.rb:79:in `with_base'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:158:in `visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/base.rb:52:in `block in visit_children'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/base.rb:52:in `map'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/base.rb:52:in `visit_children'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:167:in `block in visit_children'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:179:in `with_environment'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:166:in `visit_children'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/base.rb:36:in `block in visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:186:in `visit_root'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/base.rb:36:in `visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:157:in `visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/visitors/perform.rb:8:in `visit'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/root_node.rb:36:in `css_tree'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/tree/root_node.rb:29:in `render_with_sourcemap'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/engine.rb:368:in `_render_with_sourcemap'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/engine.rb:285:in `render_with_sourcemap'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/exec/sass_scss.rb:396:in `run'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/exec/sass_scss.rb:62:in `process_result'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/exec/base.rb:52:in `parse'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/lib/sass/exec/base.rb:19:in `parse!'
+c:/Program Files (x86)/Prepros/resources/app/ruby/ruby_gems/gems/sass-3.4.9/bin/sass:13:in `<top (required)>'
+c:/Program Files (x86)/Prepros/resources/app/ruby/loader.rb:15:in `load'
+c:/Program Files (x86)/Prepros/resources/app/ruby/loader.rb:15:in `<main>'
+*/
+body:before {
+  white-space: pre;
+  font-family: monospace;
+  content: "Error: Invalid CSS after \"&:\": expected pseudoclass or pseudoelement, was \" hover\"\A         on line 15 of style.scss\A \A 10: 	padding: 2em 0;\A 11: }\A 12: a {\A 13: 	color: #eee;\A 14: 	transition: color 0.3s ease-in-out;\A 15: 	&: hover {\A 16: 		color: #ccc;\A 17: 	}\A 18: }\A 19: ::-moz-selection {\A 20: 	background: #b3d4fc;"; }

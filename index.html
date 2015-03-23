@@ -2,99 +2,99 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<title>Chipper</title>
+	<title>Chipper :: Chip-8 &amp; SCHIP emulation in JavaScript</title>
 	<link rel="stylesheet" href="style.css">
-	<script src="jquery.js"></script>
-	<script src="chipper.js"></script>
 </head>
 <body>
-    <section class="wrapper">
-	<canvas id="chipperscreen" width="512" height="256"></canvas>
-	<audio id="chipperaudio"  preload="auto" loop="loop">
-		<source src="snd/sound.ogg">
-		<source src="snd/sound.mp3">
-		<source src="snd/sound.wav">
-	</audio>
-	<form>
-		<table id="keyboard">
-			<thead>
-				<tr>
-					<th colspan="4">Keyboard</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr>
-					<td>
-						<input type="button" value="1" id="b1" />
-					</td>
-					<td>
-						<input type="button" value="2" id="b2" />
-					</td>
-					<td>
-						<input type="button" value="3" id="b3" />
-					</td>
-					<td>
-						<input type="button" value="C" id="bc" />
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="button" value="4" id="b4" />
-					</td>
-					<td>
-						<input type="button" value="5" id="b5" />
-					</td>
-					<td>
-						<input type="button" value="6" id="b6" />
-					</td>
-					<td>
-						<input type="button" value="D" id="bd" />
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="button" value="7" id="b7" />
-					</td>
-					<td>
-						<input type="button" value="8" id="b8" />
-					</td>
-					<td>
-						<input type="button" value="9" id="b9" />
-					</td>
-					<td>
-						<input type="button" value="E" id="be" />
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="button" value="A" id="ba" />
-					</td>
-					<td>
-						<input type="button" value="0" id="b0" />
-					</td>
-					<td>
-						<input type="button" value="B" id="bb" />
-					</td>
-					<td>
-						<input type="button" value="F" id="bf" />
-					</td>
-				</tr>
-			</tbody>
-		</table>
-		<section id="options">
-			<h1>Chipper</h1>
-			<section id="file">
+	<div class="wrapper">
+		<canvas id="chipperScreen" width="512" height="256"></canvas>
+		<audio id="chipperAudio" preload="auto" loop="loop">
+			<source src="snd/sound.ogg">
+			<source src="snd/sound.mp3">
+			<source src="snd/sound.wav">
+		</audio>
+		<div class="clearfix">
+			<table id="keyboard">
+				<thead>
+					<tr>
+						<th colspan="4">Keyboard</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>
+							<input type="button" value="1" id="b1" />
+						</td>
+						<td>
+							<input type="button" value="2" id="b2" />
+						</td>
+						<td>
+							<input type="button" value="3" id="b3" />
+						</td>
+						<td>
+							<input type="button" value="C" id="bc" />
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<input type="button" value="4" id="b4" />
+						</td>
+						<td>
+							<input type="button" value="5" id="b5" />
+						</td>
+						<td>
+							<input type="button" value="6" id="b6" />
+						</td>
+						<td>
+							<input type="button" value="D" id="bd" />
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<input type="button" value="7" id="b7" />
+						</td>
+						<td>
+							<input type="button" value="8" id="b8" />
+						</td>
+						<td>
+							<input type="button" value="9" id="b9" />
+						</td>
+						<td>
+							<input type="button" value="E" id="be" />
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<input type="button" value="A" id="ba" />
+						</td>
+						<td>
+							<input type="button" value="0" id="b0" />
+						</td>
+						<td>
+							<input type="button" value="B" id="bb" />
+						</td>
+						<td>
+							<input type="button" value="F" id="bf" />
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<section id="options">
+				<h1>Chipper</h1>
 				<h2>Game selector</h2>
 				<select id="romfile">
 					<optgroup label="CHIP-8">
 						<option value="c8/BLITZ">Blitz</option>
+						<option value="c8/BOWLING">Bowling</option>
 						<option value="c8/BRIX">Brix</option>
 						<option value="c8/CAVE">Cave</option>
+						<option value="c8/DEFLECTION">Deflection</option>
 						<option value="c8/INVADERS">Invaders</option>
+						<option value="c8/LUNAR">Lunar Lander</option>
 						<option value="c8/MISSILE">Missile</option>
 						<option value="c8/PONG2">Pong</option>
 						<option value="c8/RUSHHOUR">Rush Hour</option>
-						<option value="c8/TETRIS">Tetris</option>
+						<option value="c8/TETRIS" selected>Tetris</option>
 						<option value="c8/TICTAC">Tic Tac Toe</option>
 						<option value="c8/UFO">UFO</option>
 						<option value="c8/VBRIX">VBrix</option>
@@ -113,26 +113,21 @@
 						<option value="sc/SLIDESHOW1">Slideshow</option>
 						<option value="sc/SADODGE">Super Astro Dodge</option>
 						<option value="sc/STRIP8">Super Trip8</option>
-						<option value="sc/WORM">Worm</option>                                                 
-					</optgroup>			
+						<option value="sc/WORM">Worm</option>
+					</optgroup>
 				</select>
-				<input type="button" class="run" value="Run" onClick="Chipper.load();">
-			</section>
-			<section id="fps">
+				<input type="button" class="run" value="Run">
 				<h2>Frames per second</h2>
-				<div class="fpsdisplay">
+				<div class="fpsdisplay clearfix">
 					<div id="fps0" class="fps"></div>
 					<div id="fps1" class="fps"></div>
 				</div>
+				<p>Powered by <a href="https://github.com/manuelsagra/chipper/">HTML5 &amp; JavaScript</a></p>
+				<p>Developed by <a href="http://manuelsagra.com/">Manuel Sagra</a></p>
 			</section>
-			<section class="legend">
-				<p>Powered by HTML5 &amp; JavaScript</p>
-				<p>Developed by <a href="http://manuelsagra.com/">Manuel Sagra</a> in 2011</p>
-			</section>
-		</section>
-		<div class="break"></div>
-	</form>
-    </section>
+		</div>
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+	<script src="chipper.js"></script>
 </body>
 </html>
-
