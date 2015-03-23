@@ -283,7 +283,6 @@ Screen.prototype = {
 	},
 
 	drawSprite: function(x, y, n) {
-		console.log(x, y, n);
 		var w = 8;
 		if (n == 0) {
 			n = 16;
